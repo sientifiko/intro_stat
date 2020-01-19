@@ -99,6 +99,9 @@ pnorm(obsdiff, mean(null.dist$null.dist),
 
 # == POBLACIONES, MUESTRAS Y ESTIMACIONES
 
+library(rafalib) # usaremos esta librería pa trabajar con sd y varianza
+                 # poblacionales
+
 # importar datos de ratas, ante experimento de dieta normal vs high fat
 dat <- read.csv("mice_pheno.csv")
 
@@ -110,10 +113,39 @@ control.pop <- dat %>% filter(Sex == "F", Diet == "chow") %>%
 tratamiento.pop <- dat %>% filter(Sex == "F", Diet == "hf") %>%
   dplyr::select(Bodyweight) %>% unlist()
 
-# teorema central del límite (CLT)
-# latext de clt, p. 48
+mean(tratamiento.pop) - mean(control.pop)
 
-pnorm(2, lower.tail = F)
+# teorema central del límite (CLT)
+pnorm(2, mean = 0, sd = 1, lower.tail = F)
+
+# solo conociendo media y sd poblacional, en una dist normal, podemos
+# conocer que tan extremo es un valor (estimamos a partir de muestras)
+# Y bajo CLT operamos por ley de grandes Numeros
+
+# creamos data solo de ratas hembras
+dat.f <- dat %>% filter(Sex == "F")
+
+# ploteamos diferencias en pesos
+ggplot(dat.f,aes(Bodyweight)) +
+  geom_histogram(binwidth = 3.0) +
+  geom_density(aes(y= 2.5 * ..count.., colour = "red"), 
+               size = 1) +
+  theme(legend.position = "none") +
+  facet_grid(.~ Diet) +
+  labs(x = "Pesos de ratas hembras", y = "frecuencia")
+
+# plot de curva de cuantiles (qq plot)
+ggplot(dat.f,aes(sample = Bodyweight)) +
+  geom_qq() +
+  geom_qq_line() +
+  theme(legend.position = "none") +
+  facet_grid(.~ Diet) +
+  labs(x = "Pesos de ratas hembras", y = "frecuencia")
+
+
+# p54
+
+
 
 
 
