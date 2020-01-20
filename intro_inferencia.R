@@ -140,12 +140,41 @@ ggplot(dat.f,aes(sample = Bodyweight)) +
   geom_qq_line() +
   theme(legend.position = "none") +
   facet_grid(.~ Diet) +
-  labs(x = "Pesos de ratas hembras", y = "frecuencia")
+  labs(x = "Cuantiles teóricos", y = "Cuantiles observados")
 
 
-# p54
+# Simulamos distribución para múltiples muestreos
+Ns <- c(3, 12, 25, 50)
+res <- sapply(Ns, function(n){
+  replicate(10000, {
+    mean(sample(tratamiento.pop, n))-mean(sample(control.pop, n))
+  })
+})
 
+# reconvertir a data frame
+res <- res %>% as.data.frame()
+n.label <- c("N_3", "N_12", "N_25", "N_50")
+lista <- list()
+for (i in seq(along=n.label)) {
+  temp.res <- res[,i] %>% as.data.frame()
+  temp.res$N <- n.label[i]
+  lista[[i]] <- temp.res
+}
 
+# convertir lista a df y reorganizar factores
+df.res <- do.call("rbind", lista)
+df.res$N <- df.res$N %>% as.factor()
+df.res$N <- factor(df.res$N, levels(df.res$N)[c(3,1,2,4)])
+
+# borar objetos que no ulitzaremos
+rm(i, n.label, res, lista, temp.res)
+
+# qq plot para múltiples N
+ggplot(df.res, aes(sample =.)) +
+  geom_qq() +
+  geom_qq_line() +
+  facet_wrap(.~N, nrow = 2) +
+  labs(x = "Cuantiles teóricos", y = "Cuantiles observados")
 
 
 
