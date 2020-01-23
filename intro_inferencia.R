@@ -310,7 +310,14 @@ ggplot(simulacion, aes(iteracion, media.m, colour = as.factor(contiene))) +
   labs(y = "Media Muestral")
 
 
+# si achicamos los tamaños muestrales, vemos que el CLT falla, ya que ésto introduce mayor
+# variabilidad en los datos, e infla las colas de la distribución (fat tails). 
+# El CLT, está contenido en éste elemento
+Q <- qnorm(1 - 0.05/2) # el cual asume que distribución es normal
 
+# Pero podemos hace ésta aproximación, bajo condiciones de colas gordas, por medio de
+# una distribución t, para lo cual usamos éste término, que incorpora grados de libertad
+Q <- qt(1 - 0.05/2, df = 4)
 
 
 
