@@ -276,7 +276,7 @@ intervalo[1] <= mean(pop.control$Bodyweight) &
 # función para obtener intérvalo
 get.intervalo <- function(i, vector){
   media.pop <- mean(vector) 
-  muestra <- sample(vector, 30)
+  muestra <- sample(vector, 30) # puedes probar cambiando el tamaño muestral
   media.mue <- mean(muestra) 
   Q <- qnorm(1 - 0.05/2)
   se <- sd(muestra)/sqrt(30) 
