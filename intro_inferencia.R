@@ -269,7 +269,47 @@ muestra <- sample(pop.control$Bodyweight, 30)
 media <- mean(muestra) # \bar{X}
 Q <- qnorm(1 - 0.05/2) # Q
 se <- sd(muestra)/sqrt(30) # \frac{s_x}{\sqrt{N}}
-intervalo <- c(media - Q*se, media + Q*se) # \mu_x\pm\bar{X}+Q*\frac{s_x}{\sqrt{N}} 
+intervalo <- c(media - Q*se,media, media + Q*se) # \mu_x\pm\bar{X}+Q*\frac{s_x}{\sqrt{N}} 
+intervalo[1] <= mean(pop.control$Bodyweight) & 
+  intervalo[3] >= mean(pop.control$Bodyweight) # intérvalo contiene a la media poblacional??
+
+# función para obtener intérvalo
+get.intervalo <- function(i, vector){
+  media.pop <- mean(vector) 
+  muestra <- sample(vector, 30)
+  media.mue <- mean(muestra) 
+  Q <- qnorm(1 - 0.05/2)
+  se <- sd(muestra)/sqrt(30) 
+  contiene <- (media.mue - Q*se) < media.pop & (media.mue + Q*se) > media.pop
+  intervalo <- c(i, media.mue - Q*se, media.mue, media.pop, media.mue + Q*se, contiene)
+  return(intervalo)
+}
+
+# simulación para múltiples intérvalos, y construcción del dataset simulado
+lista <- list()
+for(i in 1:100){
+  lista[[i]] <- get.intervalo(i, pop.control$Bodyweight)
+}
+simulacion <- do.call("rbind", lista)
+colnames(simulacion) <- c("iteracion", "ic_menor", "media.m", "media.p", "ic_superior", "contiene")
+simulacion <- as.data.frame(simulacion)
+rm(lista, i)
+
+# visualización de los intérvalos
+ggplot(simulacion, aes(iteracion, media.m, colour = as.factor(contiene))) +
+  theme_bw() +
+  geom_pointrange(aes(ymin= ic_menor, ymax = ic_superior)) +
+  scale_color_manual(values = c("red", "black")) +
+  theme(legend.position = "none", text = element_text(size = 20)) +
+  geom_hline(yintercept = simulacion$media.p, size = 2, colour = "blue") +
+  coord_flip() +
+  geom_text(label = paste0(simulacion$contiene %>% sum(), "/100"), 
+            y = 26.5, x = 100, size = 10) +
+  labs(y = "Media Muestral")
+
+
+
+
 
 
 
