@@ -287,6 +287,7 @@ get.intervalo <- function(i, vector){
 
 # simulación para múltiples intérvalos, y construcción del dataset simulado
 # se corren 100 simulaciones, podemos probar con más, y ver que ocurre!
+# también puedes probar con distintos tamaños muestrales, actualmente está en 30
 lista <- list()
 for(i in 1:100){
   lista[[i]] <- get.intervalo(i, pop.control$Bodyweight)
