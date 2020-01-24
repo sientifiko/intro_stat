@@ -28,7 +28,7 @@ for (i in 1:3) {
   rm(temp.samp)
 }
 
-# == LA HIPOTESIS NULA (Ho)
+# === LA HIPOTESIS NULA (Ho) ====
 
 control <- sample(poblacion$Bodyweight, 12)
 tratamiento <- sample(poblacion$Bodyweight, 12)
@@ -49,7 +49,7 @@ null.dist <- replicate(10000,{
 mean(null.dist >= obsdiff) # <- p.valor
 
 
-# == LAS DISTRIBUCIONES
+# == LAS DISTRIBUCIONES ====
 
 data("father.son")
 
@@ -70,7 +70,7 @@ ggplot(father.son, aes(sheight)) +
   geom_histogram() +
   labs(x = "Altura del hijo", y = "Frecuencia")
 
-# == DISTRIBUCIÓN DE PROBABILIDADES
+# == DISTRIBUCIÓN DE PROBABILIDADES ====
 
 # Simulación de Monte Carlo y ploteo de distribución nula
 null.dist <- replicate(100, {
@@ -97,7 +97,7 @@ pnorm(obsdiff, mean(null.dist$null.dist),
                lower.tail = F)
 
 
-# == POBLACIONES, MUESTRAS Y ESTIMACIONES
+# == POBLACIONES, MUESTRAS Y ESTIMACIONES ====
 
 library(rafalib) # usaremos esta librería pa trabajar con sd y varianza
                  # poblacionales
@@ -218,7 +218,7 @@ ggplot(df.res, aes(sample =.)) +
   labs(x = "Cuantiles teóricos", y = "Cuantiles observados t-student")
 
 
-# == PRUEBA T DE STUDENT
+# == PRUEBA T DE STUDENT ====
 # (dataset específico de ratas hembras)
 dat <- read.csv("femaleMiceWeights.csv")
 
@@ -245,7 +245,7 @@ pnorm(resultado$statistic, lower.tail = F) * 2 # por 2 porque distribución es
 # CLT -> dice que hay efecto cuando no lo hay (error de tipo I)
 # t student -> dice que NO hay efecto cuando SI lo hay (error de tipo II)
 
-# == INTERVALOS DE CONFIANZA EN T DE STUDENT
+# == INTERVALOS DE CONFIANZA EN T DE STUDENT ====
 
 # imprimir CI
 resultado$conf.int
@@ -262,6 +262,9 @@ pop.control <- dat %>%
   filter(Sex == "F", Diet == "chow") %>% 
   dplyr::select(Bodyweight)
 
+# capturar media poblacional
+media.pop <- mean(pop.control$Bodyweight) 
+
 # muestra de ratas
 muestra <- sample(pop.control$Bodyweight, 30)
 
@@ -270,32 +273,52 @@ media <- mean(muestra) # \bar{X}
 Q <- qnorm(1 - 0.05/2) # Q
 se <- sd(muestra)/sqrt(30) # \frac{s_x}{\sqrt{N}}
 intervalo <- c(media - Q*se,media, media + Q*se) # \mu_x\pm\bar{X}+Q*\frac{s_x}{\sqrt{N}} 
-intervalo[1] <= mean(pop.control$Bodyweight) & 
-  intervalo[3] >= mean(pop.control$Bodyweight) # intérvalo contiene a la media poblacional??
+intervalo[1] <= media.pop & 
+  intervalo[3] >= media.pop # intérvalo contiene a la media poblacional??
 
 # función para obtener intérvalo
-get.intervalo <- function(i, vector){
-  media.pop <- mean(vector) 
-  muestra <- sample(vector, 30) # puedes probar cambiando el tamaño muestral
+get.intervalo <- function(i, vector, n.muestra, distribucion){
+  #'@param i número de iteración
+  #'@param vector vector con valores de la población
+  #'@param n.muestra valor entero con tamaño de la muestra
+  #'@param distribucion cadena con el tipo de distribución a modelar ("qn"== dist normal, "qt"== dist t-student)
+  #'@return vector con intérvalos de confianza, media muestra e iteración
+  
+  muestra <- sample(vector, n.muestra) # puedes probar cambiando el tamaño muestral
   media.mue <- mean(muestra) 
-  Q <- qnorm(1 - 0.05/2)
-  se <- sd(muestra)/sqrt(30) 
-  contiene <- (media.mue - Q*se) < media.pop & (media.mue + Q*se) > media.pop
-  intervalo <- c(i, media.mue - Q*se, media.mue, media.pop, media.mue + Q*se, contiene)
+  Q <- case_when(
+    distribucion == "qn" ~ qnorm(1 - 0.05/2),
+    distribucion == "qt" ~ qt(1 - 0.05/2, df = 4)
+  )
+  se <- sd(muestra)/sqrt(n.muestra) 
+  contiene <- (media.mue - Q*se) < mean(vector) & (media.mue + Q*se) > mean(vector)
+  intervalo <- c(i, media.mue - Q*se, media.mue, media.mue + Q*se, contiene)
   return(intervalo)
 }
 
-# simulación para múltiples intérvalos, y construcción del dataset simulado
+# generar función que devuelva dataset
+get.simulacion <- function(vector, n.simulaciones, n.muestra, distribucion){
+  #'@param vector el vector con datos de población
+  #'@param n.simulaciones número entero que indica cantidad de simulaciones a correr
+  #'@param n.muestra número entero que indica tamaño de la muestra
+  #'@param distribucion cadena con el tipo de distribución 
+  #'@return data.frame con datos de la simulación
+  
+  lista <- list()
+  for(i in 1:n.simulaciones){
+    lista[[i]] <- get.intervalo(i, vector, n.muestra, distribucion)
+  }
+  simulacion <- do.call("rbind", lista)
+  colnames(simulacion) <- c("iteracion", "ic_menor", "media.m","ic_superior", "contiene")
+  simulacion <- as.data.frame(simulacion)
+  return(simulacion)
+  
+}# fin get.simulacion
+
 # se corren 100 simulaciones, podemos probar con más, y ver que ocurre!
 # también puedes probar con distintos tamaños muestrales, actualmente está en 30
-lista <- list()
-for(i in 1:100){
-  lista[[i]] <- get.intervalo(i, pop.control$Bodyweight)
-}
-simulacion <- do.call("rbind", lista)
-colnames(simulacion) <- c("iteracion", "ic_menor", "media.m", "media.p", "ic_superior", "contiene")
-simulacion <- as.data.frame(simulacion)
-rm(lista, i)
+simulacion <- get.simulacion(pop.control$Bodyweight, 100, 30, "qn")
+
 
 # visualización de los intérvalos
 ggplot(simulacion, aes(iteracion, media.m, colour = as.factor(contiene))) +
@@ -303,12 +326,26 @@ ggplot(simulacion, aes(iteracion, media.m, colour = as.factor(contiene))) +
   geom_pointrange(aes(ymin= ic_menor, ymax = ic_superior)) +
   scale_color_manual(values = c("red", "black")) +
   theme(legend.position = "none", text = element_text(size = 20)) +
-  geom_hline(yintercept = simulacion$media.p, size = 2, colour = "blue") +
+  geom_hline(yintercept = media.pop, size = 2, colour = "blue") +
   coord_flip() +
   geom_text(label = paste0(simulacion$contiene %>% sum(), "/100"), 
             y = 26.5, x = 100, size = 10) +
   labs(y = "Media Muestral")
 
+# visualicemos que ocurre con una muestra mucho más pequeña
+simulacion <- get.simulacion(pop.control$Bodyweight, 100, 5, "qn")
+
+# visualización de los intérvalos
+ggplot(simulacion, aes(iteracion, media.m, colour = as.factor(contiene))) +
+  theme_bw() +
+  geom_pointrange(aes(ymin= ic_menor, ymax = ic_superior)) +
+  scale_color_manual(values = c("red", "black")) +
+  theme(legend.position = "none", text = element_text(size = 20)) +
+  geom_hline(yintercept = media.pop, size = 2, colour = "blue") +
+  coord_flip() +
+  geom_text(label = paste0(simulacion$contiene %>% sum(), "/100"), 
+            y = 26.5, x = 100, size = 10) +
+  labs(y = "Media Muestral")
 
 # si achicamos los tamaños muestrales, vemos que el CLT falla, ya que ésto introduce mayor
 # variabilidad en los datos, e infla las colas de la distribución (fat tails). 
@@ -316,8 +353,49 @@ ggplot(simulacion, aes(iteracion, media.m, colour = as.factor(contiene))) +
 Q <- qnorm(1 - 0.05/2) # el cual asume que distribución es normal
 
 # Pero podemos hace ésta aproximación, bajo condiciones de colas gordas, por medio de
-# una distribución t, para lo cual usamos éste término, que incorpora grados de libertad
+# una distribución t, para lo cual cambiamos éste término, que incorpora grados de libertad
 Q <- qt(1 - 0.05/2, df = 4)
+
+# cambiaremos el término final de la función, para simular esa distribución
+simulacion <- get.simulacion(pop.control$Bodyweight, 100, 5, "qt")
+
+# visualización de los intérvalos
+ggplot(simulacion, aes(iteracion, media.m, colour = as.factor(contiene))) +
+  theme_bw() +
+  geom_pointrange(aes(ymin= ic_menor, ymax = ic_superior)) +
+  scale_color_manual(values = c("red", "black")) +
+  theme(legend.position = "none", text = element_text(size = 20)) +
+  geom_hline(yintercept = media.pop, size = 2, colour = "blue") +
+  coord_flip() +
+  geom_text(label = paste0(simulacion$contiene %>% sum(), "/100"), 
+            y = 26.5, x = 100, size = 10) +
+  labs(y = "Media Muestral")
+
+# con ello recuperamos el intérvalo de confianza del caso anterior.
+
+# == VÍNCULO P.VALOR E INTÉRVALO DE CONFIANZA ====
+
+# por ejemplo en una prueba t, 
+t.test(dat$Bodyweight[dat$Sex=="F" & dat$Diet=="hf"],
+       dat$Bodyweight[dat$Sex=="F" & dat$Diet=="chow"])$conf.int 
+# dado que estamos comparando diferencias medias,se espera que tal diferencia
+# nunca sea 0, ya que ello implicaría que variable aleatoria (diferencia media muestral)
+# es un valor extremo respecto de la distribución bajo supuesto de Ho (hacer memoria)
+# y OJO, en este caso, que esperamos que valor >0 en el intérvalo nos da resultado significativo
+# en otros puede esperar que valor estimado, sea por ejemplo, !=1, en cuyo
+# caso se espera que intérvalo no contenga 1 para ser significativo (pudiendo ser menor o mayor a 1)
+
+
+# ====================== POWER CALCULATIONS ===========================
+
+# importamos población de ratas
+dat <- read.csv("mice_pheno.csv")
+
+
+
+
+
+
 
 
 
