@@ -381,7 +381,7 @@ t.test(dat$Bodyweight[dat$Sex=="F" & dat$Diet=="hf"],
 # dado que estamos comparando diferencias medias,se espera que tal diferencia
 # nunca sea 0, ya que ello implicaría que variable aleatoria (diferencia media muestral)
 # es un valor extremo respecto de la distribución bajo supuesto de Ho (hacer memoria)
-# y OJO, en este caso, que esperamos que valor >0 en el intérvalo nos da resultado significativo
+# y OJO, en este caso, que esperamos que valor > 0 en el intérvalo nos da resultado significativo,
 # en otros puede esperar que valor estimado, sea por ejemplo, !=1, en cuyo
 # caso se espera que intérvalo no contenga 1 para ser significativo (pudiendo ser menor o mayor a 1)
 
@@ -391,7 +391,110 @@ t.test(dat$Bodyweight[dat$Sex=="F" & dat$Diet=="hf"],
 # importamos población de ratas
 dat <- read.csv("mice_pheno.csv")
 
+# calcularemos una especie de "tamaño de efecto" del tratamiento de dieta
+# alta en grasas en el peso de las ratas
 
+# sacamos las problaciones de control y tratamiento en ratas hembras
+ctrlPop <- dat %>% filter(Sex == "F" & Diet == "chow") %>%
+  dplyr::select(Bodyweight) %>% unlist()
+
+tratPop <- dat %>% filter(Sex == "F" & Diet == "hf") %>%
+  dplyr::select(Bodyweight) %>% unlist()
+
+# calculamos el porcentaje de aumento en peso dado el tipo de dieta
+(mean(tratPop) - mean(ctrlPop))/mean(ctrlPop)
+
+# nos da un ~de 10% 
+
+# veamos si encontramos diferencias medias significativas en muestras pequeñas de N = 5
+t.test(sample(ctrlPop, 5), sample(tratPop, 5) )$p.value
+ 
+# ?? No es significativa la diferencia, pese a que lo es a nivel poblacional, es falsa
+# entonces diferencia? Cometimos un error? No... bueno si, un error de Tipo II
+# lo que nos faltó acá es más "poder"
+
+# acá entran éstos errores, dado que estamos en un mundo de variables aleatorias
+# es posible que justo en nuestra muestra no podamos encontrar tal diferencia
+
+# Los errores son 2:
+# Error de tipo I -> rechazar la Ho cuando es verdadera, aka falso positivo
+# Error de tipo II -> no rechazar la H0 cuando ésta es falsa, aka falso negativo
+
+# El proceso de aplicación estadística, está mediado por éstos 2 factores
+# Si maximizamos un elemento, la probabilidad del otro error aumenta, para remediar
+# medianamente eso, ocupamos el cálculo de poder que és "la probabilidad de rechazar
+# la hipótesis nula cuando ésta es falsa"
+
+# Este poder está directamente relacionado al tamaño muestral (en realidad tiene que ver 
+# también con el alpha de <.05 definido arbitrariamente, pero dado que es convención, 
+# nos remitiremos solo al tamaño muestral)
+
+# Crearemos una función que nos devolverá los p.valores
+
+p.valor <- function(n, tratamiento, control){
+  return(
+    t.test(sample(tratamiento, n), sample(control, n))$p.value
+  )
+}
+
+p.valor(12, tratPop, ctrlPop) < .05
+
+# repliquemos la función múltiples veces para ver la curva p
+p.valores <- replicate(2000,p.valor(12, tratPop, ctrlPop)) %>% as.data.frame()
+
+# grafiquemos
+ggplot(p.valores, aes(.)) +
+  theme_bw() +
+  geom_histogram() +
+  # geom_density() +
+  geom_vline(xintercept = .05, color = "red", size = 1)
+
+# notar que aunque grueso de resultados quedan por debajo del p.valor <.05, sigue existiendo
+# una gran proporción que rechaza esa relación, incluso podemos calcular esa proporción
+
+mean(p.valores < .05)
+
+# Ésto nos da un poder de poco más del 20%, bastante bajo
+# Veamos como se ven distintasa curvas p, con distintos tamños muestrales
+lista <- list()
+j <- 1
+for (i in seq(10, 40, 10)) {
+  p.valores <- replicate(2000,p.valor(i, tratPop, ctrlPop)) 
+  lista[[j]] <- cbind(p.valores, paste0("N",i)) %>% as.data.frame()
+  j <- j + 1
+}
+muestras <- do.call("rbind", lista)
+muestras$p.valores <- as.numeric(paste0(muestras$p.valores))
+rm(i,j,lista)
+
+# grafiquemos
+ggplot(muestras, aes(p.valores)) +
+  theme_bw() +
+  theme(text = element_text(size = 20)) +
+  geom_density() +
+  # geom_histogram() +
+  facet_wrap(.~V2, ncol = 2) +
+  geom_vline(xintercept = .05, color = "red", size = 1)
+
+
+# Y veamos el cuadro general de poder estadístico para diversos tamaños muestrales
+poder <- sapply(seq(10, 100, 10), function(N){
+  p.valores <- replicate(2000, p.valor(N, tratPop, ctrlPop))
+  mean(p.valores < .05)
+})
+
+# Creemos una tabla de poder
+tabla.poder <- poder %>% as.data.frame() 
+tabla.poder$N <- factor(paste0("n",seq(10, 100, 10)),
+                             levels = paste0("n",seq(10, 100, 10)))
+
+# Grafiquemos
+ggplot(tabla.poder, aes(N, poder, group =1)) +
+  theme_bw() +
+  theme(text = element_text(size = 20)) +
+  # geom_bar(stat = "identity")
+  geom_line() +
+  geom_point()
 
 
 
