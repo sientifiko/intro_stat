@@ -418,12 +418,12 @@ t.test(sample(ctrlPop, 5), sample(tratPop, 5) )$p.value
 
 # Los errores son 2:
 # Error de tipo I -> rechazar la Ho cuando es verdadera, aka falso positivo
-# Error de tipo II -> no rechazar la H0 cuando ésta es falsa, aka falso negativo
+# Error de tipo II -> no rechazar la Ho cuando ésta es falsa, aka falso negativo
 
-# El proceso de aplicación estadística, está mediado por éstos 2 factores
-# Si maximizamos un elemento, la probabilidad del otro error aumenta, para remediar
+# Este proceso de aplicación estadística, está mediado por éstos 2 factores
+# Si minimizamos la probabilidad de un error, la del otro error aumenta, para remediar
 # medianamente eso, ocupamos el cálculo de poder que és "la probabilidad de rechazar
-# la hipótesis nula cuando ésta es falsa"
+# la hipótesis nula cuando ésta es falsa", la cual es, para variar, otra convención
 
 # Este poder está directamente relacionado al tamaño muestral (en realidad tiene que ver 
 # también con el alpha de <.05 definido arbitrariamente, pero dado que es convención, 
