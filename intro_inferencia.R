@@ -485,8 +485,7 @@ poder <- sapply(seq(10, 100, 10), function(N){
 
 # Creemos una tabla de poder
 tabla.poder <- poder %>% as.data.frame() 
-tabla.poder$N <- factor(paste0("n",seq(10, 100, 10)),
-                             levels = paste0("n",seq(10, 100, 10)))
+tabla.poder$N <- seq(10, 100, 10)
 
 # Grafiquemos
 ggplot(tabla.poder, aes(N, poder, group =1)) +
@@ -497,8 +496,31 @@ ggplot(tabla.poder, aes(N, poder, group =1)) +
   geom_point()
 
 
+# así también podemos visualizar el trade off que se da entre el poder estadístico
+# y el p.valor asignado. 
 
+# manipulemos la convención de la significancia de <.05, por otros niveles y veamos
+# si existe capacidad de rechazar Ho cuando es falsa
 
+# definimos varios alfa o bandas de significancia
+alphas <- c(.1, .05, .01, .001, .0001)
+
+# hacemos la simulación, replicamos 2000 muestreos de 30 sujetos cada uno, sacamos
+# diferencias medias, y promediamos para obtener el poder
+power <- sapply(alphas, function(alpha){
+  rechazos <- replicate(2000, p.valor(30, tratPop, ctrlPop) < alpha)
+  mean(rechazos)
+})
+
+# generamos el df con datos de alfa y sus respectivos poderes
+df.alphatradeoff <- data.frame(alpha = alphas, poder = power)
+
+# ploteamos
+ggplot(df.alphatradeoff, aes(alpha, poder)) +
+  theme_bw() +
+  theme(text = element_text(size = 20)) +
+  geom_line() +
+  geom_point()
 
 
 
