@@ -523,6 +523,45 @@ ggplot(df.alphatradeoff, aes(alpha, poder)) +
   geom_point()
 
 
+# cuando la H1 es verdadera, el p.valor es arbitrario, podemos hacerlo mas y mas
+# pequeño solo aumentando el N
+
+# sabemos que en nuestra población ese es el caso (existe diferencia media), por lo que
+# podemos ver que pasa con la relación p.valor N
+
+# generamos una secuencia de tamaños de muestra con 10 repeticiones cada una
+Ns <- seq(10, 200, by = 10)
+Ns_rep <- rep(Ns, each=10)
+
+# recuerden que la función p.valor incluye random sampling
+# calculamos el p.valor de múltiples muestreos de distinto tamaño
+ps <- sapply(Ns_rep, p.valor, tratamiento = tratPop, control=ctrlPop)
+
+# generamos df de tamaños y p.valores
+df.p_vs_n <- data.frame(ns = Ns_rep, p.valores = ps)
+
+
+# ploteamos relación (aplicamos escala logaritmica en p.valores para achicar distancias y
+# relación se vea más clara)
+ggplot(df.p_vs_n, aes(ns, log(p.valores))) +
+  geom_jitter() +
+  # marcamos una línea al alpha = .01
+  geom_hline(yintercept = log(.01)) +
+  # marcamos otra línea con el alfa convencional de .05
+  geom_hline(yintercept = log(.05))
+
+# si resultado es consistente, p.valores más pequeños no tienen más sentido!!!
+
+# y aquí aparaece otro concepto genial, muy subvalorado: el tamaño de efecto!
+# esto es, que tanto impacta la variable independiente en el output que tenemos
+# en este caso dieta hf -> peso
+
+# hay varias medidas para calcularla, pero la más conocida es la d de Cohen, que
+# básucamente es la diferencia absoluta de medias dividida en la desviación estándar
+
+
+(abs(mean(tratPop) - mean(ctrlPop)))/
+  sd(dat$Bodyweight[dat$Sex=="F"]) # --> este es el dataset de la pobla completa
 
 
 
@@ -534,4 +573,9 @@ ggplot(df.alphatradeoff, aes(alpha, poder)) +
 
 
 
+
+
+
+
+# ====================== SIMULACIONES DE MONTECARLO <3 ====
 
