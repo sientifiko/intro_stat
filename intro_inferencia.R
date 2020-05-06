@@ -3,6 +3,13 @@
 library(tidyverse); library(UsingR)
 options(scipen = 999)
 
+# =========== PRE UNIDAD: EXPLORATORY DATA ANALYSIS =============
+
+
+
+
+
+
 # ============= UNIDAD 1 COMPARACIÓN DE MEDIAS T-TEST ==============
 
 # importar la data de la muestra
@@ -386,7 +393,7 @@ t.test(dat$Bodyweight[dat$Sex=="F" & dat$Diet=="hf"],
 # caso se espera que intérvalo no contenga 1 para ser significativo (pudiendo ser menor o mayor a 1)
 
 
-# ====================== POWER CALCULATIONS ===========================
+# == POWER CALCULATIONS ===========================
 
 # importamos población de ratas
 dat <- read.csv("mice_pheno.csv")
@@ -577,5 +584,192 @@ ggplot(df.p_vs_n, aes(ns, log(p.valores))) +
 
 
 
-# ====================== SIMULACIONES DE MONTECARLO <3 ====
+# == SIMULACIONES DE MONTECARLO ====
+
+# y si en vez de levantar datos, los simulamos usando un algoritmo?
+
+dat <- read.csv("mice_pheno.csv")
+ctrlPop <- dat %>% filter(Sex == "F" & Diet == "chow") %>%
+  dplyr::select(Bodyweight) %>% unlist()
+
+tratPop 
+
+# por ejemplo, podemos similar la distribución de diferencias medias encontradas
+# en una población, por el puro azar
+
+# creamos una función que nos estadísticos de t de student
+generador.ttest <- function(n, pop){
+  return(t.test(sample(pop, n), sample(pop, n))$statistic)
+}
+
+# simulamos mil de estos test con simulación de Monte Carlo
+ttests <- replicate(1000, generador.ttest(10, ctrlPop))
+
+# graficamos
+ggplot() +
+  geom_histogram(aes(ttests))
+
+# se puede apreciar que la diferenciar por distribución t de student, se
+# asimila bastante a la normal 
+ggplot() +
+  stat_qq(aes(sample = ttests)) +
+  stat_qq_line(aes(sample = ttests))
+
+# pero aquí estamos trabajando con el vector de la población, a la cual no tenemos
+# acceso en el mundo real, pero sí podemos jugar con parámetros como el promedio
+# o desviación estándar para intengar replicar esa data. Veamos
+
+mean(ctrlPop) # <- ~24
+sd(ctrlPop) # <- ~3.5
+
+# repitamos lo de arriba editando nuetra función
+
+# creamos una función que nos estadísticos de t de student
+generador.ttest <- function(n, mean, sd){
+  # generamos distribuciones ficticias de casos y controles solo con esos
+  # parámetros
+  casos <- rnorm(n, mean, sd)
+  controles <- rnorm(n, mean, sd)
+  
+  return(t.test(casos, controles)$statistic)
+}
+
+# replicamos con los nuevos parámetros
+ttests <- replicate(1000, generador.ttest(10, 24, 3.5))
+
+# y graficamos ¿se parece a nuestra distribución previa? (mas o menos)
+ggplot() +
+  geom_histogram(aes(ttests))
+
+# simulación con permutación, hata ahora hemos simulado distribución aleatoria de
+# diferencias medias, con muestras sobre puestas, pero ¿quedará igual si los sujetos
+# de una muestra, no están en la otra?
+
+dat <- read.csv("femaleMiceWeights.csv")
+
+control <- dat %>% filter(Diet == "chow") %>%
+  dplyr::select(Bodyweight) %>% unlist()
+
+tratamiento <- dat %>% filter(Diet == "hf") %>%
+  dplyr::select(Bodyweight) %>% unlist()
+
+
+
+# simulación montecarlo, hay varias formas de hacer esto, esta es solo
+# una de ellas
+dif.medias <- replicate(1000, {
+  muestra.conjunta <- sample(c(control, tratamiento)) # por defecto sample() toma 12 valores
+                                                      # por lo que entre las 2 son 24
+  # tomo los primeros 12
+  n.control <- muestra.conjunta[1:12]
+  # tomo los 12 restantes
+  n.tratamiento <- muestra.conjunta[13:24]
+  return(mean(n.tratamiento) - mean(n.control))
+  })
+
+# grafiquemos y dibujemos que proporción de valores más extremos podrían obtenerse
+# por el puro azar
+ggplot() +
+  geom_histogram(aes(dif.medias)) +
+  geom_vline(xintercept = mean(tratamiento) - mean(control))
+
+# con esta formula calculamos el porcentaje de valores más extremos bajo el puro azar
+# se le suma 1 al segundo término en numerador y al denominador, no tengo idea porque,
+# lo dice la literatura
+sum(
+  abs(dif.medias) > abs(mean(tratamiento) - mean(control)+1)
+)/ (length(dif.medias) + 1)
+
+# ensayen con muestras más pequeñas, y vean qué proporción de valores más extremos son
+# esperables por el puro azar
+
+
+
+# ==================== UNIDAD 2 ÁLGEBRA MATRICIAL ==========================
+
+# Partamos explorando relaciones que parecen poder ser descritas por asociaciones
+# lineales
+
+# digamos que lanzamos 25 pelotas desde la Torre de Pisa, y registramos
+# la distancia en que se encuentran en X momento en el tiempo tt
+
+tt <- seq(0, 3.4, len = 25) # tiempo en segundos, de 0 a 3.4 segundos dividido en
+                            # 25 instancias
+
+    #altura   #aceleración    #algo de aleatoriedad a cada pelota
+d <- 56.67 -   .5*9.8*tt^2   +  rnorm(25, sd = 1)
+
+# la relación se aprecia así
+ggplot() +
+  geom_point(aes(x = tt, y = d)) +
+  geom_smooth(aes(x = tt, y = d))
+
+
+# Veamos otro ejemplo, como la heredabilidad de la estatura
+
+# traigamos los datos de estaturas de una muestra de padres e hijos
+data("father.son")
+
+# grafiquemos
+ggplot(father.son, aes(fheight, sheight)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+# veamos la relación entre una dieta alta en grasas vs una normal
+dat <- read.csv("femaleMiceWeights.csv")
+
+ggplot(dat, aes(Diet, Bodyweight, colour = Diet)) +
+  geom_boxplot() +
+  geom_jitter() +
+  geom_smooth(aes(group = 1), method = "lm")
+
+
+# como se aprecia, todas estas relaciones parecen ser relativamente bien modeladas
+# por una recta, algunas con más o menos error (ver última relación)
+# esta recta es un coeficiente (beta) que minimiza las distancias entre cada punto
+# la que se conoce como "mínimos cuadrados"
+
+# vamos a ver como manipular matricialmente este tipo de relaciones
+
+# == VECTORES, MATRICES Y ESCALARES ====
+
+# Cada uno de los valores por casos en una columna de un dataset, pueden ser
+# pensados como vectores, ejemplo
+
+father.son$fheight # esto puede ser visto como un vector
+
+# de tal forma que el dataset completo, pueda ser pensado como una matriz
+# y a su vez una matriz, como una colección de vectores
+
+# Por cierto R tiene el objeto Matriz para trabajarlo
+matrix(1:100, nrow = 10, ncol = 10)
+
+# por último un escalar, es solo un número
+
+# == OPERACIONES MATRICIALES ====
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
