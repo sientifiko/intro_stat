@@ -742,19 +742,62 @@ father.son$fheight # esto puede ser visto como un vector
 # y a su vez una matriz, como una colección de vectores
 
 # Por cierto R tiene el objeto Matriz para trabajarlo
-matrix(1:100, nrow = 10, ncol = 10)
+mat <- matrix(1:100, nrow = 10, ncol = 10)
+
+# explorando una matriz: dimensiones
+dim(mat)
+# obtener columnas o filas
+mat[,3] # columna
+mat[7,] # fila
+mat[1,10] # valor específico
 
 # por último un escalar, es solo un número
 
 # == OPERACIONES MATRICIALES ====
 
+# multiplicar por un escalar
+mat <- matrix(1:12,3,4)
+mat
+2 * mat
 
+# trasponer
+t(mat)
 
+# multiplicar matrices
+mat <- matrix(c(1,3,2,1,-2,1,1,1,-1),3,3)
+vec <- c(3:1)
 
+mat %*% vec
 
+# la matriz de identidad
+# es analoga al número 1. Cualquier matrix multiplicada por la I, da
+# la misma matriz
+diag(5)
 
+# la matriz inversa o X^-1
+# la propiedad de esta matriz, es que al multiplicar una matriz por su
+# inverso, da la I
+# pero no toda matriz tiene un inverso
+mat <- matrix(c(1,3,2,1,-2,1,1,1,-1),3,3)
+solve(mat)
 
+# breve ejercicio
+# Digamos que tenemos el siguiente sistema de ecuaciones
 
+# 1a + 1b + 1c = 6
+# 3a - 2b + 1c = 2
+# 2a + 1b - 1c = 1
+
+# queremos despejar a, b y c, para ello usaremos algebra matricial
+# primero crearemos una matriz con los valores enteros a la izquierda
+# del sistema de ecuaciones
+mat <- matrix(c(1,3,2,1,-2,1,1,1,-1),3,3)
+mat
+# luego creamos el vector con las soluciones
+result <- c(6, 2, 1)
+
+# finalmente aplicamos la fórmula, que es multiplicar el vector de resultado por X^-1
+solve(mat)%*%result
 
 
 
